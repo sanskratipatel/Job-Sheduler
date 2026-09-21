@@ -37,4 +37,34 @@ class CreateJobRequest(BaseModel):
         default=300,
         gt=0,
         description="Maximum allowed execution time",
+    ) 
+
+
+from datetime import datetime
+from typing import Any
+
+from pydantic import BaseModel, Field
+
+
+class UpdateJobRequest(BaseModel):
+    name: str | None = None
+    payload: dict[str, Any] | None = None
+
+    priority: int | None = Field(
+        default=None,
+        ge=0,
+        le=100,
+    )
+
+    scheduled_at: datetime | None = None
+
+    max_attempts: int | None = Field(
+        default=None,
+        ge=1,
+        le=100,
+    )
+
+    timeout_seconds: int | None = Field(
+        default=None,
+        ge=1,
     )

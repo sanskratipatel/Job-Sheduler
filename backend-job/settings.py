@@ -16,9 +16,7 @@ class Settings(BaseSettings):
     db_pool_max_size: int = 5
     db_pool_timeout: float = 10.0
     db_pool_max_idle: float = 120.0
-
-    cors_origins: list[str] = ["http://localhost:5173"]
-
+    cors_origins: list[str] = ["*"]
     worker_concurrency: int = 4
     worker_poll_interval_seconds: float = 2.0
     worker_heartbeat_interval_seconds: float = 10.0

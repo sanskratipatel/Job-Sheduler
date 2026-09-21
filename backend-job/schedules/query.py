@@ -417,4 +417,175 @@ async def archive_schedule(
             for column in cursor.description
         ]
 
-        return dict(zip(columns, row))
+        return dict(zip(columns, row)) 
+
+
+from uuid import UUID
+
+from psycopg import AsyncConnection
+from psycopg.rows import dict_row
+
+
+async def update_schedule(
+    connection: AsyncConnection,
+    schedule_id: UUID,
+    update_data: dict,
+):
+    allowed_fields = {
+        "name",
+        "description",
+        "payload",
+        "priority",
+        "max_attempts",
+        "timeout_seconds",
+        "timezone",
+        "run_at",
+        "run_time",
+        "interval_count",
+        "days_of_week",
+        "day_of_month",
+        "month_of_year",
+        "run_dates",
+        "cron_expression",
+        "start_at",
+        "end_at",
+        "max_runs",
+        "misfire_policy",
+        "next_run_at",
+    }
+
+    values_to_update = {
+        key: value
+        for key, value in update_data.items()
+        if key in allowed_fields
+    }
+
+    if not values_to_update:
+        return None
+
+    set_parts = []
+    values = []
+
+    for field, value in values_to_update.items():
+        set_parts.append(f"{field} = %s")
+        values.append(value)
+
+    set_parts.append("updated_at = NOW()")
+
+    values.append(schedule_id)
+
+    query = f"""
+        UPDATE job_schedules
+        SET {", ".join(set_parts)}
+        WHERE id = %s
+          AND status != 'ARCHIVED'
+        RETURNING *;
+    """
+
+    async with connection.cursor(row_factory=dict_row) as cursor:
+        await cursor.execute(query, values)
+        return await cursor.fetchone() 
+
+from uuid import UUID
+
+from psycopg import AsyncConnection
+from psycopg.rows import dict_row
+
+
+async def update_schedule(
+    connection: AsyncConnection,
+    schedule_id: UUID,
+    update_data: dict,
+):
+    allowed_fields = {
+        "name",
+        "description",
+        "payload",
+        "priority",
+        "max_attempts",
+        "timeout_seconds",
+        "timezone",
+        "run_at",
+        "run_time",
+        "interval_count",
+        "days_of_week",
+        "day_of_month",
+        "month_of_year",
+        "run_dates",
+        "cron_expression",
+        "start_at",
+        "end_at",
+        "max_runs",
+        "misfire_policy",
+        "next_run_at",
+    }
+
+    values_to_update = {
+        key: value
+        for key, value in update_data.items()
+        if key in allowed_fields
+    }
+
+    if not values_to_update:
+        return None
+
+    set_parts = []
+    values = []
+
+    for field, value in values_to_update.items():
+        set_parts.append(f"{field} = %s")
+        values.append(value)
+
+    set_parts.append("updated_at = NOW()")
+
+    values.append(schedule_id)
+
+    query = f"""
+        UPDATE job_schedules
+        SET {", ".join(set_parts)}
+        WHERE id = %s
+          AND status != 'ARCHIVED'
+        RETURNING *;
+    """
+
+    async with connection.cursor(row_factory=dict_row) as cursor:
+        await cursor.execute(query, values)
+        return await cursor.fetchone() 
+
+async def pause_schedule(
+    connection: AsyncConnection,
+    schedule_id: UUID,
+):
+    query = """
+        UPDATE job_schedules
+        SET
+            status = 'PAUSED',
+            updated_at = NOW()
+        WHERE id = %s
+          AND status = 'ACTIVE'
+        RETURNING *;
+    """
+
+    async with connection.cursor(row_factory=dict_row) as cursor:
+        await cursor.execute(query, (schedule_id,))
+        return await cursor.fetchone() 
+
+
+async def archive_schedule(
+    connection: AsyncConnection,
+    schedule_id: UUID,
+):
+    query = """
+        UPDATE job_schedules
+        SET
+            status = 'ARCHIVED',
+            next_run_at = NULL,
+            updated_at = NOW()
+        WHERE id = %s
+          AND status != 'ARCHIVED'
+        RETURNING id, status;
+    """
+
+    async with connection.cursor(row_factory=dict_row) as cursor:
+        await cursor.execute(query, (schedule_id,))
+        return await cursor.fetchone()
