@@ -3,6 +3,9 @@ from jobs.routes import router as jobs_router
 from database import get_db_connection
 from lifespan import lifespan
 from utils.logger import logger
+from fastapi import FastAPI 
+from settings import settings
+from fastapi.middleware.cors import CORSMiddleware
 from dashboard.routes import router as dashboard_router
 from workers.routes import router as workers_router
 from schedules.routes import router as schedule_router
@@ -12,7 +15,13 @@ app = FastAPI(
     version="1.0.0",
     lifespan=lifespan,
 )
-
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=settings.cors_origins,
+    allow_credentials=False,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
 app.include_router(jobs_router) 
 app.include_router(workers_router) 

@@ -405,4 +405,101 @@ async def retry_job(
             for column in cursor.description
         ]
 
-        return dict(zip(columns, row))
+        return dict(zip(columns, row)) 
+
+from uuid import UUID
+
+from psycopg import AsyncConnection
+from psycopg.rows import dict_row
+
+
+async def update_job(
+    connection: AsyncConnection,
+    job_id: UUID,
+    update_data: dict,
+):
+    if not update_data:
+        return None
+
+    allowed_fields = {
+        "name",
+        "payload",
+        "priority",
+        "scheduled_at",
+        "max_attempts",
+        "timeout_seconds",
+    }
+
+    update_data = {
+        key: value
+        for key, value in update_data.items()
+        if key in allowed_fields
+    }
+
+    if not update_data:
+        return None
+
+    set_parts = []
+    values = []
+
+    for field, value in update_data.items():
+        set_parts.append(f"{field} = %s")
+        values.append(value)
+
+    set_parts.append("updated_at = NOW()")
+
+    values.append(job_id)
+
+    query = f"""
+        UPDATE jobs
+        SET {", ".join(set_parts)}
+        WHERE id = %s
+          AND status = 'PENDING'
+        RETURNING
+            id,
+            schedule_id,
+            scheduled_for,
+            name,
+            job_type,
+            status,
+            payload,
+            priority,
+            scheduled_at,
+            attempt_count,
+            max_attempts,
+            timeout_seconds,
+            idempotency_key,
+            payload_hash,
+            locked_by,
+            locked_at,
+            lease_expires_at,
+            last_error,
+            started_at,
+            completed_at,
+            created_at,
+            updated_at;
+    """
+
+    async with connection.cursor(row_factory=dict_row) as cursor:
+        await cursor.execute(query, values)
+        return await cursor.fetchone()
+
+
+async def archive_job(
+    connection: AsyncConnection,
+    job_id: UUID,
+):
+    query = """
+        UPDATE jobs
+        SET
+            status = 'CANCELLED',
+            completed_at = NOW(),
+            updated_at = NOW()
+        WHERE id = %s
+          AND status = 'PENDING'
+        RETURNING id, status;
+    """
+
+    async with connection.cursor(row_factory=dict_row) as cursor:
+        await cursor.execute(query, (job_id,))
+        return await cursor.fetchone()

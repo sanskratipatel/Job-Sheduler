@@ -14,6 +14,9 @@ from jobs.query import (
     get_job_type,
     list_jobs,
 )
+
+from .request import UpdateJobRequest
+from .query import update_job, archive_job
 from jobs.request import CreateJobRequest
 from jobs.response import (
     CancelJobResponse,
@@ -330,4 +333,71 @@ async def retry_job_api(
         "id": row["id"],
         "status": row["status"],
         "message": "Job queued for retry",
-    }
+    } 
+
+
+@router.patch("/{job_id}")
+async def patch_job(
+    job_id: UUID,
+    request: UpdateJobRequest,
+    connection: AsyncConnection = Depends(get_connection),
+):
+    update_data = request.model_dump(exclude_unset=True)
+
+    try:
+        job = await update_job(
+            connection=connection,
+            job_id=job_id,
+            update_data=update_data,
+        )
+
+        if not job:
+            raise HTTPException(
+                status_code=status.HTTP_409_CONFLICT,
+                detail="Only PENDING jobs can be updated or the job does not exist.",
+            )
+
+        await connection.commit()
+
+        return job
+
+    except HTTPException:
+        await connection.rollback()
+        raise
+
+    except Exception:
+        await connection.rollback()
+        raise 
+
+@router.patch("/{job_id}")
+async def patch_job(
+    job_id: UUID,
+    request: UpdateJobRequest,
+    connection: AsyncConnection = Depends(get_connection),
+):
+    update_data = request.model_dump(exclude_unset=True)
+
+    try:
+        job = await update_job(
+            connection=connection,
+            job_id=job_id,
+            update_data=update_data,
+        )
+
+        if not job:
+            raise HTTPException(
+                status_code=status.HTTP_409_CONFLICT,
+                detail="Only PENDING jobs can be updated or the job does not exist.",
+            )
+
+        await connection.commit()
+
+        return job
+
+    except HTTPException:
+        await connection.rollback()
+        raise
+
+    except Exception:
+        await connection.rollback()
+        raise

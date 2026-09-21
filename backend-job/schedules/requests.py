@@ -259,4 +259,72 @@ class UpdateScheduleRequest(BaseModel):
         gt=0,
     )
 
-    misfire_policy: MisfirePolicy | None = None
+    misfire_policy: MisfirePolicy | None = None 
+
+from datetime import date, datetime, time
+from typing import Any
+
+from pydantic import BaseModel, Field
+
+
+class UpdateScheduleRequest(BaseModel):
+    name: str | None = None
+    description: str | None = None
+
+    payload: dict[str, Any] | None = None
+
+    priority: int | None = Field(
+        default=None,
+        ge=0,
+        le=100,
+    )
+
+    max_attempts: int | None = Field(
+        default=None,
+        ge=1,
+    )
+
+    timeout_seconds: int | None = Field(
+        default=None,
+        ge=1,
+    )
+
+    timezone: str | None = None
+
+    run_at: datetime | None = None
+
+    run_time: time | None = None
+
+    interval_count: int | None = Field(
+        default=None,
+        ge=1,
+    )
+
+    days_of_week: list[int] | None = None
+
+    day_of_month: int | None = Field(
+        default=None,
+        ge=1,
+        le=31,
+    )
+
+    month_of_year: int | None = Field(
+        default=None,
+        ge=1,
+        le=12,
+    )
+
+    run_dates: list[date] | None = None
+
+    cron_expression: str | None = None
+
+    start_at: datetime | None = None
+
+    end_at: datetime | None = None
+
+    max_runs: int | None = Field(
+        default=None,
+        ge=1,
+    )
+
+    misfire_policy: str | None = None
